@@ -1,0 +1,2011 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>鉄拳8 戦績記録ツール</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Orbitron:wght@700;900&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0a0a0f;
+      --bg-secondary: #12121a;
+      --bg-card: #1a1a2e;
+      --bg-card-hover: #222240;
+      --accent-primary: #e94560;
+      --accent-secondary: #0f3460;
+      --accent-gold: #f5a623;
+      --accent-cyan: #00d2ff;
+      --accent-green: #00e676;
+      --accent-purple: #b24bf3;
+      --text-primary: #eaeaea;
+      --text-secondary: #8a8a9a;
+      --text-muted: #555566;
+      --border: #2a2a3e;
+      --shadow-glow: 0 0 20px rgba(233, 69, 96, 0.15);
+      --gradient-fire: linear-gradient(135deg, #e94560, #f5a623);
+      --gradient-ice: linear-gradient(135deg, #0f3460, #00d2ff);
+      --gradient-header: linear-gradient(135deg, #e94560 0%, #b24bf3 50%, #0f3460 100%);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background:
+        radial-gradient(ellipse at 20% 0%, rgba(233, 69, 96, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 100%, rgba(15, 52, 96, 0.08) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .app-container {
+      position: relative;
+      z-index: 1;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    /* ===== HEADER ===== */
+    .header {
+      text-align: center;
+      padding: 40px 20px 30px;
+      margin-bottom: 30px;
+      position: relative;
+    }
+
+    .header h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 2.8rem;
+      font-weight: 900;
+      background: var(--gradient-header);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      text-shadow: none;
+      filter: drop-shadow(0 0 30px rgba(233, 69, 96, 0.3));
+    }
+
+    .header .subtitle {
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      letter-spacing: 2px;
+    }
+
+    /* ===== TABS ===== */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 24px;
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      padding: 4px;
+      border: 1px solid var(--border);
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 12px 16px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      border-radius: 10px;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-primary);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .tab-btn.active {
+      background: var(--bg-card);
+      color: var(--accent-primary);
+      box-shadow: var(--shadow-glow);
+    }
+
+    .tab-btn .tab-icon {
+      margin-right: 6px;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* ===== CARD ===== */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      margin-bottom: 20px;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .card:hover {
+      box-shadow: var(--shadow-glow);
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--gradient-fire);
+      opacity: 0.6;
+    }
+
+    .card-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title .icon {
+      font-size: 1.3rem;
+    }
+
+    /* ===== FORM ===== */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group.full-width {
+      grid-column: 1 / -1;
+    }
+
+    .form-group label {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      letter-spacing: 0.5px;
+    }
+
+    select,
+    textarea,
+    input[type="text"],
+    input[type="date"] {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: var(--text-primary);
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 0.95rem;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      outline: none;
+      width: 100%;
+    }
+
+    select:focus,
+    textarea:focus,
+    input:focus {
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.15);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 70px;
+    }
+
+    /* ===== RESULT TOGGLE ===== */
+    .result-toggle {
+      display: flex;
+      gap: 0;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    .result-toggle input[type="radio"] {
+      display: none;
+    }
+
+    .result-toggle label {
+      flex: 1;
+      padding: 10px 16px;
+      text-align: center;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 1rem;
+      background: var(--bg-secondary);
+      color: var(--text-muted);
+      transition: all 0.3s ease;
+    }
+
+    .result-toggle input[value="win"]:checked+label {
+      background: var(--gradient-fire);
+      color: #fff;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    .result-toggle input[value="lose"]:checked+label {
+      background: var(--gradient-ice);
+      color: #fff;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    /* ===== CHECKBOX GROUP ===== */
+    .checkbox-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .checkbox-group label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border-radius: 8px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+
+    .checkbox-group label:hover {
+      border-color: var(--accent-primary);
+      color: var(--text-primary);
+    }
+
+    .checkbox-group input[type="checkbox"] {
+      display: none;
+    }
+
+    .checkbox-group input[type="checkbox"]:checked+span {
+      color: var(--accent-primary);
+      font-weight: 600;
+    }
+
+    .checkbox-group label:has(input:checked) {
+      border-color: var(--accent-primary);
+      background: rgba(233, 69, 96, 0.1);
+    }
+
+    .checkbox-group.loss-reasons label:has(input:checked) {
+      border-color: var(--accent-cyan);
+      background: rgba(0, 210, 255, 0.1);
+    }
+
+    .checkbox-group.loss-reasons input[type="checkbox"]:checked+span {
+      color: var(--accent-cyan);
+    }
+
+    /* ===== BUTTONS ===== */
+    .btn {
+      padding: 12px 28px;
+      border: none;
+      border-radius: 10px;
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-primary {
+      background: var(--gradient-fire);
+      color: #fff;
+      box-shadow: 0 4px 15px rgba(233, 69, 96, 0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 25px rgba(233, 69, 96, 0.4);
+    }
+
+    .btn-secondary {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--accent-cyan);
+      background: rgba(0, 210, 255, 0.05);
+    }
+
+    .btn-danger {
+      background: transparent;
+      color: var(--accent-primary);
+      border: 1px solid rgba(233, 69, 96, 0.3);
+      padding: 6px 12px;
+      font-size: 0.8rem;
+    }
+
+    .btn-danger:hover {
+      background: rgba(233, 69, 96, 0.1);
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+
+    /* ===== RECORD TABLE ===== */
+    .records-table-wrapper {
+      overflow-x: auto;
+    }
+
+    .records-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 4px;
+      font-size: 0.88rem;
+    }
+
+    .records-table th {
+      padding: 10px 12px;
+      text-align: left;
+      font-weight: 500;
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .records-table td {
+      padding: 10px 12px;
+      background: var(--bg-secondary);
+      vertical-align: middle;
+    }
+
+    .records-table tr td:first-child {
+      border-radius: 8px 0 0 8px;
+    }
+
+    .records-table tr td:last-child {
+      border-radius: 0 8px 8px 0;
+    }
+
+    .records-table tbody tr {
+      transition: transform 0.15s ease;
+    }
+
+    .records-table tbody tr:hover td {
+      background: var(--bg-card-hover);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .badge-win {
+      background: rgba(233, 69, 96, 0.15);
+      color: var(--accent-primary);
+      border: 1px solid rgba(233, 69, 96, 0.3);
+    }
+
+    .badge-lose {
+      background: rgba(0, 210, 255, 0.1);
+      color: var(--accent-cyan);
+      border: 1px solid rgba(0, 210, 255, 0.3);
+    }
+
+    .reason-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .reason-tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      background: rgba(178, 75, 243, 0.1);
+      color: var(--accent-purple);
+      border: 1px solid rgba(178, 75, 243, 0.2);
+    }
+
+    /* ===== STATS / CHARTS ===== */
+    .stats-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .stat-box {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .stat-box .stat-value {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 2rem;
+      font-weight: 900;
+      margin-bottom: 4px;
+    }
+
+    .stat-box .stat-label {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+    }
+
+    .stat-value.win-color {
+      color: var(--accent-primary);
+    }
+
+    .stat-value.lose-color {
+      color: var(--accent-cyan);
+    }
+
+    .stat-value.rate-color {
+      color: var(--accent-gold);
+    }
+
+    .stat-value.total-color {
+      color: var(--accent-green);
+    }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .chart-container {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      position: relative;
+    }
+
+    .chart-container h3 {
+      font-size: 0.95rem;
+      margin-bottom: 16px;
+      color: var(--text-secondary);
+      text-align: center;
+    }
+
+    .chart-canvas-wrapper {
+      position: relative;
+      width: 100%;
+      max-height: 320px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .chart-canvas-wrapper canvas {
+      max-height: 300px;
+    }
+
+    /* ===== FILTER BAR ===== */
+    .filter-bar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .filter-bar select,
+    .filter-bar input {
+      max-width: 200px;
+      padding: 8px 12px;
+      font-size: 0.85rem;
+    }
+
+    .filter-bar label {
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+    }
+
+    /* ===== IO SECTION ===== */
+    .io-buttons {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+
+    .empty-state .empty-icon {
+      font-size: 3rem;
+      margin-bottom: 12px;
+    }
+
+    /* ===== TOAST ===== */
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      padding: 14px 24px;
+      background: var(--bg-card);
+      border: 1px solid var(--accent-green);
+      border-radius: 10px;
+      color: var(--accent-green);
+      font-weight: 500;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.4s ease;
+      z-index: 1000;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 768px) {
+      .header h1 {
+        font-size: 1.6rem;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .charts-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .app-container {
+        padding: 12px;
+      }
+
+      .card {
+        padding: 18px;
+      }
+
+      .tabs {
+        flex-wrap: wrap;
+      }
+
+      .tab-btn {
+        font-size: 0.82rem;
+        padding: 10px 8px;
+      }
+    }
+
+    /* ===== CUSTOM ITEMS MANAGEMENT ===== */
+    .custom-items-section {
+      margin-top: 24px;
+    }
+
+    .custom-items-section h4 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .custom-add-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+
+    .custom-add-row .form-group {
+      flex: 1;
+      min-width: 120px;
+    }
+
+    .custom-add-row .btn {
+      height: 40px;
+      white-space: nowrap;
+    }
+
+    .custom-item-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 16px;
+      min-height: 32px;
+    }
+
+    .custom-item-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      border: 1px solid var(--border);
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      animation: fadeIn 0.2s ease;
+    }
+
+    .custom-item-chip .chip-category {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    .custom-item-chip .chip-delete {
+      cursor: pointer;
+      color: var(--accent-primary);
+      font-size: 1rem;
+      line-height: 1;
+      opacity: 0.6;
+      transition: opacity 0.2s;
+    }
+
+    .custom-item-chip .chip-delete:hover {
+      opacity: 1;
+    }
+
+    .custom-io-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .custom-empty {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      padding: 8px 0;
+    }
+
+    .new-category-row {
+      display: none;
+      margin-top: 8px;
+      margin-bottom: 8px;
+    }
+
+    .new-category-row.visible {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+    }
+
+    .new-category-row input {
+      flex: 1;
+    }
+
+    .new-category-row .btn {
+      height: 40px;
+      white-space: nowrap;
+      font-size: 0.82rem;
+      padding: 8px 14px;
+    }
+
+    .custom-category-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-primary);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="app-container">
+    <!-- HEADER -->
+    <div class="header">
+      <h1>TEKKEN 8</h1>
+      <div class="subtitle">⚡ 戦績記録 & 分析ツール ⚡</div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="record" id="tab-record">
+        <span class="tab-icon">🎮</span>記録する
+      </button>
+      <button class="tab-btn" data-tab="history" id="tab-history">
+        <span class="tab-icon">📋</span>対戦履歴
+      </button>
+      <button class="tab-btn" data-tab="stats" id="tab-stats">
+        <span class="tab-icon">📊</span>統計・分析
+      </button>
+      <button class="tab-btn" data-tab="io" id="tab-io">
+        <span class="tab-icon">💾</span>データ管理
+      </button>
+    </div>
+
+    <!-- ===== TAB 1: RECORD ===== -->
+    <div class="tab-content active" id="content-record">
+      <div class="card">
+        <div class="card-title"><span class="icon">⚔️</span>対戦を記録</div>
+        <form id="match-form">
+          <div class="form-grid">
+            <!-- 自キャラ -->
+            <div class="form-group">
+              <label>自キャラクター</label>
+              <select id="my-char" required></select>
+            </div>
+
+            <!-- 対戦相手キャラ -->
+            <div class="form-group">
+              <label>対戦相手キャラクター</label>
+              <select id="opp-char" required></select>
+            </div>
+
+            <!-- 試合結果 -->
+            <div class="form-group">
+              <label>試合結果</label>
+              <div class="result-toggle">
+                <input type="radio" name="result" value="win" id="result-win" checked>
+                <label for="result-win">🏆 WIN</label>
+                <input type="radio" name="result" value="lose" id="result-lose">
+                <label for="result-lose">💀 LOSE</label>
+              </div>
+            </div>
+
+            <!-- ラウンドスコア -->
+            <div class="form-group">
+              <label>ラウンドスコア</label>
+              <select id="round-score" required></select>
+            </div>
+
+            <!-- 勝因 -->
+            <div class="form-group full-width">
+              <label>勝因（複数選択可）</label>
+              <div class="checkbox-group win-reasons" id="win-reasons"></div>
+            </div>
+
+            <!-- 敗因 -->
+            <div class="form-group full-width">
+              <label>敗因（複数選択可）</label>
+              <div class="checkbox-group loss-reasons" id="loss-reasons"></div>
+            </div>
+
+            <!-- メモ -->
+            <div class="form-group full-width">
+              <label>メモ</label>
+              <textarea id="memo" placeholder="試合の気づきやメモを入力..."></textarea>
+            </div>
+          </div>
+
+          <div class="btn-group">
+            <button type="submit" class="btn btn-primary">⚡ 記録する</button>
+            <button type="reset" class="btn btn-secondary">🔄 リセット</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ===== TAB 2: HISTORY ===== -->
+    <div class="tab-content" id="content-history">
+      <div class="card">
+        <div class="card-title"><span class="icon">📋</span>対戦履歴</div>
+
+        <div class="filter-bar">
+          <div class="form-group">
+            <label>自キャラ</label>
+            <select id="filter-my-char">
+              <option value="">全て</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>相手キャラ</label>
+            <select id="filter-opp-char">
+              <option value="">全て</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>結果</label>
+            <select id="filter-result">
+              <option value="">全て</option>
+              <option value="win">WIN</option>
+              <option value="lose">LOSE</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="records-table-wrapper">
+          <table class="records-table" id="records-table">
+            <thead>
+              <tr>
+                <th>日時</th>
+                <th>自キャラ</th>
+                <th>相手キャラ</th>
+                <th>結果</th>
+                <th>スコア</th>
+                <th>勝因</th>
+                <th>敗因</th>
+                <th>メモ</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="records-body"></tbody>
+          </table>
+          <div class="empty-state" id="empty-history" style="display:none;">
+            <div class="empty-icon">🎮</div>
+            <p>まだ試合記録がありません。<br>「記録する」タブから試合を追加しましょう！</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TAB 3: STATS ===== -->
+    <div class="tab-content" id="content-stats">
+      <div class="card">
+        <div class="card-title"><span class="icon">📊</span>統計サマリー</div>
+        <div class="stats-summary" id="stats-summary"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span class="icon">🎯</span>勝因・敗因 分析チャート</div>
+
+        <div class="filter-bar">
+          <div class="form-group">
+            <label>自キャラ</label>
+            <select id="stats-char-filter">
+              <option value="">全て</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>相手キャラ</label>
+            <select id="stats-opp-filter">
+              <option value="">全て</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>集計試合数</label>
+            <select id="stats-count-filter">
+              <option value="">全て</option>
+              <option value="5">直近 5 試合</option>
+              <option value="10">直近 10 試合</option>
+              <option value="20">直近 20 試合</option>
+              <option value="30">直近 30 試合</option>
+              <option value="50">直近 50 試合</option>
+              <option value="100">直近 100 試合</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="charts-grid">
+          <div class="chart-container">
+            <h3>🔥 勝因カテゴリ レーダーチャート</h3>
+            <div class="chart-canvas-wrapper">
+              <canvas id="chart-win-radar"></canvas>
+            </div>
+          </div>
+          <div class="chart-container">
+            <h3>❄️ 敗因カテゴリ レーダーチャート</h3>
+            <div class="chart-canvas-wrapper">
+              <canvas id="chart-lose-radar"></canvas>
+            </div>
+          </div>
+          <div class="chart-container">
+            <h3>🔥 勝因の割合</h3>
+            <div class="chart-canvas-wrapper">
+              <canvas id="chart-win-pie"></canvas>
+            </div>
+          </div>
+          <div class="chart-container">
+            <h3>❄️ 敗因の割合</h3>
+            <div class="chart-canvas-wrapper">
+              <canvas id="chart-lose-pie"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TAB 4: IO ===== -->
+    <div class="tab-content" id="content-io">
+      <div class="card">
+        <div class="card-title"><span class="icon">💾</span>データ管理</div>
+        <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 0.9rem;">
+          戦績データをJSONファイルとしてエクスポート・インポートできます。バックアップや別デバイスへの移行にご利用ください。
+        </p>
+        <div class="io-buttons">
+          <button class="btn btn-primary" id="btn-export">📤 JSONエクスポート</button>
+          <button class="btn btn-secondary" id="btn-import-trigger">📥 JSONインポート</button>
+          <input type="file" id="btn-import" accept=".json">
+          <button class="btn btn-danger" id="btn-clear-all" style="margin-left: auto;">🗑️ 全データ削除</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span class="icon">📄</span>データプレビュー</div>
+        <textarea id="data-preview" readonly
+          style="width:100%; min-height:200px; font-family:monospace; font-size:0.8rem; background:var(--bg-primary); color: var(--accent-cyan); border:1px solid var(--border); border-radius:10px; padding:14px;"></textarea>
+      </div>
+
+      <!-- カスタム勝因・敗因 管理 -->
+      <div class="card">
+        <div class="card-title"><span class="icon">🔧</span>カスタム勝因・敗因 管理</div>
+        <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 0.9rem;">
+          独自の勝因・敗因項目を追加できます。カスタム項目はJSONファイルとしてエクスポート・インポートが可能です。
+        </p>
+
+        <div class="custom-items-section">
+          <h4>🔥 カスタム勝因</h4>
+          <div class="custom-add-row">
+            <div class="form-group">
+              <label>項目名</label>
+              <input type="text" id="custom-win-label" placeholder="例: ジャブ暴れ">
+            </div>
+            <div class="form-group">
+              <label>カテゴリ</label>
+              <select id="custom-win-category" onchange="onCategorySelectChange('win')"></select>
+            </div>
+            <button class="btn btn-primary" onclick="addCustomReason('win')">＋ 追加</button>
+          </div>
+          <div class="new-category-row" id="new-category-row-win">
+            <input type="text" id="new-category-win" placeholder="新しいカテゴリ名">
+            <button class="btn btn-primary" onclick="addNewCategory('win')">追加</button>
+            <button class="btn btn-secondary" onclick="cancelNewCategory('win')">取消</button>
+          </div>
+          <div class="custom-item-list" id="custom-win-list"></div>
+        </div>
+
+        <div class="custom-items-section" style="margin-top: 28px;">
+          <h4>❄️ カスタム敗因</h4>
+          <div class="custom-add-row">
+            <div class="form-group">
+              <label>項目名</label>
+              <input type="text" id="custom-lose-label" placeholder="例: 暴れ潰された">
+            </div>
+            <div class="form-group">
+              <label>カテゴリ</label>
+              <select id="custom-lose-category" onchange="onCategorySelectChange('lose')"></select>
+            </div>
+            <button class="btn btn-primary" onclick="addCustomReason('lose')">＋ 追加</button>
+          </div>
+          <div class="new-category-row" id="new-category-row-lose">
+            <input type="text" id="new-category-lose" placeholder="新しいカテゴリ名">
+            <button class="btn btn-primary" onclick="addNewCategory('lose')">追加</button>
+            <button class="btn btn-secondary" onclick="cancelNewCategory('lose')">取消</button>
+          </div>
+          <div class="custom-item-list" id="custom-lose-list"></div>
+        </div>
+
+        <div class="custom-items-section" style="margin-top: 28px;" id="custom-categories-section">
+          <h4>🏷️ カスタムカテゴリ一覧</h4>
+          <div class="custom-category-list" id="custom-category-list"></div>
+        </div>
+
+        <div class="custom-io-row">
+          <button class="btn btn-secondary" onclick="exportCustomReasons()">📤 カスタム項目エクスポート</button>
+          <button class="btn btn-secondary" onclick="importCustomReasons()">📥 カスタム項目インポート</button>
+          <input type="file" id="btn-import-custom" accept=".json">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ==========================================
+    // 鉄拳8 戦績記録ツール - JavaScript
+    // ==========================================
+
+    // ===== 定数 =====
+    const TEKKEN8_CHARACTERS = [
+      // 初期キャラクター (32体)
+      'アリサ', 'アズセナ', 'ブライアン', 'クラウディオ', 'デビル仁',
+      'ドラグノフ', 'フェン', 'ファラン',
+      '飛鳥', '一八', 'ジャック-8', '仁',
+      '準', 'キング', 'クマ', 'ラース',
+      'リー', 'レオ', 'リロイ', 'リリ',
+      'シャオユウ', 'マーシャル・ロウ', 'ニーナ', 'パンダ',
+      'ポール', 'レイヴン', 'レイナ', 'シャヒーン',
+      'スティーブ', 'ビクター', 'ヨシミツ', 'ザフィーナ',
+      // シーズン1 DLC (4体)
+      'エディ', 'リディア', 'ヘイハチ', 'クライヴ',
+      // シーズン2 DLC (4体)
+      'アンナ', 'ファークラム', 'アーマーキング', 'ミアリズ',
+    ].sort();
+
+    const WIN_REASONS = [
+      { id: 'movement', label: '立ち回り', category: '立ち回り' },
+      { id: 'spacing', label: '間合い管理', category: '立ち回り' },
+      { id: 'okiwaza', label: '置き技', category: '立ち回り' },
+      { id: 'step_in_guard', label: 'ステップインガード', category: '立ち回り' },
+      { id: 'counter_hit', label: 'カウンター', category: '立ち回り' },
+      { id: 'furi_f_abare', label: '振りFから暴れ', category: '立ち回り' },
+      { id: 'combo', label: 'コンボ火力', category: 'コンボ' },
+      { id: 'combo_route', label: 'コンボ選択', category: 'コンボ' },
+      { id: 'aituchi_combo', label: '相打ちコンボ', category: 'コンボ' },
+      { id: 'haimen_combo', label: '背面コンボ', category: 'コンボ' },
+      { id: 'punish', label: '確定反撃', category: '確定反撃' },
+      { id: 'ws_punish', label: 'しゃがみ確反', category: '確定反撃' },
+      { id: 'suka_punish', label: 'スカ確', category: '確定反撃' },
+      { id: 'throw', label: '投げ', category: '投げ' },
+      { id: 'throw_break', label: '投げ抜け', category: '投げ' },
+      { id: 'okizeme', label: '起き攻め', category: '起き攻め' },
+      { id: 'wake_up', label: '受け身・起き上がり', category: '起き攻め' },
+      { id: 'yomi', label: '読み合い', category: '読み合い' },
+      { id: 'defense', label: 'ガード・捌き', category: '読み合い' },
+      { id: 'wareru', label: '割れる連携を通した', category: '読み合い' },
+      { id: 'shagameru', label: 'しゃがめる連携を通した', category: '読み合い' },
+      { id: 'left_ss', label: '左横移動', category: '横移動' },
+      { id: 'left_sw', label: '左横歩き', category: '横移動' },
+      { id: 'right_ss', label: '右横移動', category: '横移動' },
+      { id: 'right_sw', label: '右横歩き', category: '横移動' },
+      { id: 'fw_ss_left', label: '前横移動(左)', category: '横移動' },
+      { id: 'fw_ss_right', label: '前横移動(右)', category: '横移動' },
+      { id: 'homing_hit', label: '横移動にホーミング当てた', category: '横移動' },
+      { id: 'crouch_break', label: 'しゃがんで割った', category: 'システム' },
+      { id: 'jump_break', label: '飛んで割った', category: 'システム' },
+      { id: 'rage_break', label: 'レイジで割った', category: 'システム' },
+      { id: 'heat_push', label: 'ヒートで押し切り', category: 'システム' },
+      { id: 'rage_block', label: 'レイジを防いだ', category: 'システム' },
+      { id: 'pc_break', label: 'パワクラで割った', category: 'システム' },
+      { id: 'wakarangoroshi', label: 'わからん殺し', category: 'その他' },
+    ];
+
+    const LOSE_REASONS = [
+      { id: 'l_movement', label: '立ち回り負け', category: '立ち回り' },
+      { id: 'l_spacing', label: '間合い管理ミス', category: '立ち回り' },
+      { id: 'l_counter_hit', label: 'カウンターされた', category: '立ち回り' },
+      { id: 'l_furi_f_abare', label: '振りFから暴れられた', category: '立ち回り' },
+      { id: 'l_combo', label: 'コンボミス', category: 'コンボ' },
+      { id: 'l_combo_drop', label: 'コンボ落とし', category: 'コンボ' },
+      { id: 'l_aituchi_combo', label: '相打ちコンボ', category: 'コンボ' },
+      { id: 'l_haimen_combo', label: '背面コンボされた', category: 'コンボ' },
+      { id: 'l_punish', label: '確反漏れ', category: '確定反撃' },
+      { id: 'l_punish_recv', label: '確反をもらった', category: '確定反撃' },
+      { id: 'l_suka', label: 'スカ確', category: '確定反撃' },
+      { id: 'l_throw', label: '投げられた', category: '投げ' },
+      { id: 'l_throw_fail', label: '投げ抜け失敗', category: '投げ' },
+      { id: 'l_okizeme', label: '起き攻めされた', category: '起き攻め' },
+      { id: 'l_wake_up', label: '受け身ミス', category: '起き攻め' },
+      { id: 'l_wake_up_miss', label: '受け身・起き上がり方ミス', category: '起き攻め' },
+      { id: 'l_yomi', label: '読み負け', category: '読み合い' },
+      { id: 'l_defense', label: 'ガードミス', category: '読み合い' },
+      { id: 'l_left_ss', label: '左横移動', category: '横移動' },
+      { id: 'l_left_sw', label: '左横歩き', category: '横移動' },
+      { id: 'l_right_ss', label: '右横移動', category: '横移動' },
+      { id: 'l_right_sw', label: '右横歩き', category: '横移動' },
+      { id: 'l_ss_hit', label: '横移動中に被弾した', category: '横移動' },
+      { id: 'l_crouch_break', label: 'しゃがまれて割られた', category: 'システム' },
+      { id: 'l_jump_break', label: '飛ばれて割られた', category: 'システム' },
+      { id: 'l_rage_break', label: 'レイジで割られた', category: 'システム' },
+      { id: 'l_heat_push', label: 'ヒートで押し切られた', category: 'システム' },
+      { id: 'l_rage_whiff', label: 'レイジをスカった', category: 'システム' },
+      { id: 'l_pc_read', label: 'パワクラを読まれた', category: 'システム' },
+      { id: 'l_mid_hit', label: '中段被弾しすぎ', category: '被弾' },
+      { id: 'l_low_hit', label: '下段被弾しすぎ', category: '被弾' },
+    ];
+
+    const BASE_REASON_CATEGORIES = ['立ち回り', 'コンボ', '確定反撃', '投げ', '起き攻め', '読み合い', '横移動', 'システム', 'その他', '被弾'];
+
+    function getEffectiveCategories() {
+      const custom = customCategories || [];
+      return [...BASE_REASON_CATEGORIES, ...custom.filter(c => !BASE_REASON_CATEGORIES.includes(c))];
+    }
+
+    const WIN_SCORES = ['3-0', '3-1', '3-2'];
+    const LOSE_SCORES = ['0-3', '1-3', '2-3'];
+
+    const CHART_COLORS = {
+      fire: ['rgba(233, 69, 96, 0.6)', 'rgba(233, 69, 96, 1)'],
+      ice: ['rgba(0, 210, 255, 0.6)', 'rgba(0, 210, 255, 1)'],
+      pieWin: [
+        'rgba(233, 69, 96, 0.8)', 'rgba(245, 166, 35, 0.8)', 'rgba(0, 230, 118, 0.8)',
+        'rgba(178, 75, 243, 0.8)', 'rgba(255, 205, 86, 0.8)', 'rgba(54, 162, 235, 0.8)',
+        'rgba(255, 152, 0, 0.8)', 'rgba(76, 175, 80, 0.8)', 'rgba(156, 39, 176, 0.8)', 'rgba(121, 85, 72, 0.8)'
+      ],
+      pieLose: [
+        'rgba(0, 210, 255, 0.8)', 'rgba(100, 181, 246, 0.8)', 'rgba(77, 182, 172, 0.8)',
+        'rgba(149, 117, 205, 0.8)', 'rgba(255, 167, 38, 0.8)', 'rgba(239, 83, 80, 0.8)',
+        'rgba(255, 112, 67, 0.8)', 'rgba(38, 166, 154, 0.8)', 'rgba(171, 71, 188, 0.8)', 'rgba(141, 110, 99, 0.8)'
+      ]
+    };
+
+    // ===== State =====
+    const STORAGE_KEY = 'tekken8_records';
+    const CUSTOM_REASONS_KEY = 'tekken8_custom_reasons';
+    let records = loadRecords();
+    let chartInstances = {};
+    let customWinReasons = [];
+    let customLoseReasons = [];
+    let customCategories = [];
+    loadCustomReasons();
+
+    // ===== Custom Reasons Management =====
+    function loadCustomReasons() {
+      try {
+        const data = localStorage.getItem(CUSTOM_REASONS_KEY);
+        if (data) {
+          const parsed = JSON.parse(data);
+          customWinReasons = parsed.customWinReasons || [];
+          customLoseReasons = parsed.customLoseReasons || [];
+          customCategories = parsed.customCategories || [];
+        }
+      } catch { /* ignore */ }
+    }
+
+    function saveCustomReasons() {
+      localStorage.setItem(CUSTOM_REASONS_KEY, JSON.stringify({
+        customWinReasons,
+        customLoseReasons,
+        customCategories
+      }));
+    }
+
+    function getEffectiveWinReasons() {
+      return [...WIN_REASONS, ...customWinReasons];
+    }
+
+    function getEffectiveLoseReasons() {
+      return [...LOSE_REASONS, ...customLoseReasons];
+    }
+
+    function addCustomReason(type) {
+      const labelInput = document.getElementById(`custom-${type}-label`);
+      const categorySelect = document.getElementById(`custom-${type}-category`);
+      const label = labelInput.value.trim();
+      const category = categorySelect.value;
+      if (!label) {
+        showToast('⚠️ 項目名を入力してください', true);
+        return;
+      }
+      if (!category || category === '__new__') {
+        showToast('⚠️ カテゴリを選択してください', true);
+        return;
+      }
+      const id = 'custom_' + type + '_' + Date.now().toString(36);
+      const item = { id, label, category, isCustom: true };
+      if (type === 'win') {
+        customWinReasons.push(item);
+      } else {
+        customLoseReasons.push(item);
+      }
+      saveCustomReasons();
+      labelInput.value = '';
+      refreshReasonCheckboxes();
+      renderCustomItemLists();
+      showToast(`✅ カスタム${type === 'win' ? '勝因' : '敗因'}「${label}」を追加しました`);
+    }
+
+    function onCategorySelectChange(type) {
+      const sel = document.getElementById(`custom-${type}-category`);
+      const row = document.getElementById(`new-category-row-${type}`);
+      if (sel.value === '__new__') {
+        row.classList.add('visible');
+        document.getElementById(`new-category-${type}`).focus();
+      } else {
+        row.classList.remove('visible');
+      }
+    }
+
+    function addNewCategory(type) {
+      const input = document.getElementById(`new-category-${type}`);
+      const name = input.value.trim();
+      if (!name) {
+        showToast('⚠️ カテゴリ名を入力してください', true);
+        return;
+      }
+      const allCats = getEffectiveCategories();
+      if (allCats.includes(name)) {
+        showToast('⚠️ そのカテゴリは既に存在します', true);
+        return;
+      }
+      customCategories.push(name);
+      saveCustomReasons();
+      input.value = '';
+      document.getElementById(`new-category-row-${type}`).classList.remove('visible');
+      populateCategorySelects();
+      renderCustomCategoryList();
+      // Set the new category as selected
+      document.getElementById(`custom-${type}-category`).value = name;
+      showToast(`✅ カテゴリ「${name}」を追加しました`);
+    }
+
+    function cancelNewCategory(type) {
+      document.getElementById(`new-category-row-${type}`).classList.remove('visible');
+      document.getElementById(`new-category-${type}`).value = '';
+      const sel = document.getElementById(`custom-${type}-category`);
+      sel.value = getEffectiveCategories()[0];
+    }
+
+    function deleteCustomCategory(name) {
+      // Check if category is in use
+      const inUse = [...customWinReasons, ...customLoseReasons].some(r => r.category === name);
+      if (inUse) {
+        showToast('⚠️ このカテゴリは使用中のため削除できません', true);
+        return;
+      }
+      if (!confirm(`カテゴリ「${name}」を削除しますか？`)) return;
+      customCategories = customCategories.filter(c => c !== name);
+      saveCustomReasons();
+      populateCategorySelects();
+      renderCustomCategoryList();
+      showToast('🗑️ カテゴリを削除しました');
+    }
+
+    function populateCategorySelects() {
+      const cats = getEffectiveCategories();
+      ['win', 'lose'].forEach(type => {
+        const sel = document.getElementById(`custom-${type}-category`);
+        if (!sel) return;
+        const currentVal = sel.value;
+        sel.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('')
+          + '<option value="__new__">＋ 新規カテゴリ...</option>';
+        if (cats.includes(currentVal)) {
+          sel.value = currentVal;
+        }
+      });
+    }
+
+    function renderCustomCategoryList() {
+      const list = document.getElementById('custom-category-list');
+      const section = document.getElementById('custom-categories-section');
+      if (!list) return;
+      if (customCategories.length === 0) {
+        section.style.display = 'none';
+      } else {
+        section.style.display = 'block';
+        list.innerHTML = customCategories.map(c => `
+          <div class="custom-item-chip">
+            <span>${c}</span>
+            <span class="chip-delete" onclick="deleteCustomCategory('${c}')" title="削除">✕</span>
+          </div>
+        `).join('');
+      }
+    }
+
+    function deleteCustomReason(type, id) {
+      if (type === 'win') {
+        customWinReasons = customWinReasons.filter(r => r.id !== id);
+      } else {
+        customLoseReasons = customLoseReasons.filter(r => r.id !== id);
+      }
+      saveCustomReasons();
+      refreshReasonCheckboxes();
+      renderCustomItemLists();
+      showToast('🗑️ カスタム項目を削除しました');
+    }
+
+    function refreshReasonCheckboxes() {
+      const winContainer = document.getElementById('win-reasons');
+      const loseContainer = document.getElementById('loss-reasons');
+      // Save checked state
+      const checkedWin = [...document.querySelectorAll('input[name="win_reason"]:checked')].map(c => c.value);
+      const checkedLose = [...document.querySelectorAll('input[name="lose_reason"]:checked')].map(c => c.value);
+
+      winContainer.innerHTML = '';
+      getEffectiveWinReasons().forEach(r => {
+        const checked = checkedWin.includes(r.id) ? 'checked' : '';
+        winContainer.innerHTML += `<label><input type="checkbox" name="win_reason" value="${r.id}" ${checked}><span>${r.label}</span></label>`;
+      });
+
+      loseContainer.innerHTML = '';
+      getEffectiveLoseReasons().forEach(r => {
+        const checked = checkedLose.includes(r.id) ? 'checked' : '';
+        loseContainer.innerHTML += `<label><input type="checkbox" name="lose_reason" value="${r.id}" ${checked}><span>${r.label}</span></label>`;
+      });
+    }
+
+    function renderCustomItemLists() {
+      const winList = document.getElementById('custom-win-list');
+      const loseList = document.getElementById('custom-lose-list');
+      if (!winList || !loseList) return;
+
+      if (customWinReasons.length === 0) {
+        winList.innerHTML = '<div class="custom-empty">カスタム勝因はありません</div>';
+      } else {
+        winList.innerHTML = customWinReasons.map(r => `
+          <div class="custom-item-chip">
+            <span>${r.label}</span>
+            <span class="chip-category">[${r.category}]</span>
+            <span class="chip-delete" onclick="deleteCustomReason('win','${r.id}')" title="削除">✕</span>
+          </div>
+        `).join('');
+      }
+
+      if (customLoseReasons.length === 0) {
+        loseList.innerHTML = '<div class="custom-empty">カスタム敗因はありません</div>';
+      } else {
+        loseList.innerHTML = customLoseReasons.map(r => `
+          <div class="custom-item-chip">
+            <span>${r.label}</span>
+            <span class="chip-category">[${r.category}]</span>
+            <span class="chip-delete" onclick="deleteCustomReason('lose','${r.id}')" title="削除">✕</span>
+          </div>
+        `).join('');
+      }
+    }
+
+    function exportCustomReasons() {
+      const data = { customWinReasons, customLoseReasons, customCategories };
+      if (customWinReasons.length === 0 && customLoseReasons.length === 0 && customCategories.length === 0) {
+        showToast('⚠️ エクスポートするカスタム項目がありません', true);
+        return;
+      }
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `tekken8_custom_reasons_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('📤 カスタム項目をエクスポートしました');
+    }
+
+    function importCustomReasons() {
+      document.getElementById('btn-import-custom').click();
+    }
+
+    function handleImportCustomReasons(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function (ev) {
+        try {
+          const imported = JSON.parse(ev.target.result);
+          if (!imported.customWinReasons && !imported.customLoseReasons && !imported.customCategories) {
+            throw new Error('Invalid custom reasons format');
+          }
+          const mode = confirm('既存のカスタム項目にマージしますか？\n\nOK: マージ（追加）\nキャンセル: 上書き');
+          if (mode) {
+            const existingWinIds = new Set(customWinReasons.map(r => r.id));
+            const existingLoseIds = new Set(customLoseReasons.map(r => r.id));
+            (imported.customWinReasons || []).forEach(r => {
+              if (!existingWinIds.has(r.id)) customWinReasons.push(r);
+            });
+            (imported.customLoseReasons || []).forEach(r => {
+              if (!existingLoseIds.has(r.id)) customLoseReasons.push(r);
+            });
+            (imported.customCategories || []).forEach(c => {
+              if (!customCategories.includes(c)) customCategories.push(c);
+            });
+          } else {
+            customWinReasons = imported.customWinReasons || [];
+            customLoseReasons = imported.customLoseReasons || [];
+            customCategories = imported.customCategories || [];
+          }
+          saveCustomReasons();
+          populateCategorySelects();
+          renderCustomCategoryList();
+          refreshReasonCheckboxes();
+          renderCustomItemLists();
+          showToast('📥 カスタム項目をインポートしました');
+        } catch (err) {
+          showToast('⚠️ カスタム項目の読み込みに失敗しました: ' + err.message, true);
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    }
+
+    // ===== Initialization =====
+    document.addEventListener('DOMContentLoaded', () => {
+      initCharacterSelects();
+      initReasonCheckboxes();
+      initScoreSelect();
+      initTabs();
+      initFormEvents();
+      initIOEvents();
+      initFilterEvents();
+      initCustomReasonsUI();
+      populateCategorySelects();
+      renderHistory();
+      updateDataPreview();
+    });
+
+    function initCustomReasonsUI() {
+      renderCustomItemLists();
+      renderCustomCategoryList();
+      document.getElementById('btn-import-custom').addEventListener('change', handleImportCustomReasons);
+    }
+
+    // ===== Character Select Initialization =====
+    function initCharacterSelects() {
+      const selects = ['my-char', 'opp-char'];
+      selects.forEach(id => {
+        const sel = document.getElementById(id);
+        sel.innerHTML = '<option value="">-- 選択 --</option>';
+        TEKKEN8_CHARACTERS.forEach(ch => {
+          const opt = document.createElement('option');
+          opt.value = ch;
+          opt.textContent = ch;
+          sel.appendChild(opt);
+        });
+      });
+
+      // Filter selects
+      ['filter-my-char', 'filter-opp-char', 'stats-char-filter', 'stats-opp-filter'].forEach(id => {
+        const sel = document.getElementById(id);
+        if (!sel) return;
+        const first = sel.querySelector('option');
+        sel.innerHTML = '';
+        sel.appendChild(first);
+        TEKKEN8_CHARACTERS.forEach(ch => {
+          const opt = document.createElement('option');
+          opt.value = ch;
+          opt.textContent = ch;
+          sel.appendChild(opt);
+        });
+      });
+    }
+
+    // ===== Reason Checkboxes =====
+    function initReasonCheckboxes() {
+      const winContainer = document.getElementById('win-reasons');
+      getEffectiveWinReasons().forEach(r => {
+        winContainer.innerHTML += `<label><input type="checkbox" name="win_reason" value="${r.id}"><span>${r.label}</span></label>`;
+      });
+
+      const loseContainer = document.getElementById('loss-reasons');
+      getEffectiveLoseReasons().forEach(r => {
+        loseContainer.innerHTML += `<label><input type="checkbox" name="lose_reason" value="${r.id}"><span>${r.label}</span></label>`;
+      });
+    }
+
+    // ===== Score Select =====
+    function initScoreSelect() {
+      updateScoreOptions();
+      document.querySelectorAll('input[name="result"]').forEach(radio => {
+        radio.addEventListener('change', updateScoreOptions);
+      });
+    }
+
+    function updateScoreOptions() {
+      const result = document.querySelector('input[name="result"]:checked').value;
+      const sel = document.getElementById('round-score');
+      const scores = result === 'win' ? WIN_SCORES : LOSE_SCORES;
+      sel.innerHTML = scores.map(s => `<option value="${s}">${s}</option>`).join('');
+    }
+
+    // ===== Tabs =====
+    function initTabs() {
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+          document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+          btn.classList.add('active');
+          document.getElementById('content-' + btn.dataset.tab).classList.add('active');
+
+          if (btn.dataset.tab === 'stats') {
+            renderStats();
+          }
+          if (btn.dataset.tab === 'history') {
+            renderHistory();
+          }
+          if (btn.dataset.tab === 'io') {
+            updateDataPreview();
+          }
+        });
+      });
+    }
+
+    // ===== Form Events =====
+    function initFormEvents() {
+      document.getElementById('match-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        saveMatch();
+      });
+    }
+
+    function saveMatch() {
+      const myChar = document.getElementById('my-char').value;
+      const oppChar = document.getElementById('opp-char').value;
+      const result = document.querySelector('input[name="result"]:checked').value;
+      const score = document.getElementById('round-score').value;
+      const memo = document.getElementById('memo').value.trim();
+
+      if (!myChar || !oppChar) {
+        showToast('⚠️ キャラクターを選択してください', true);
+        return;
+      }
+
+      const winReasons = [...document.querySelectorAll('input[name="win_reason"]:checked')].map(c => c.value);
+      const loseReasons = [...document.querySelectorAll('input[name="lose_reason"]:checked')].map(c => c.value);
+
+      const record = {
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        timestamp: new Date().toISOString(),
+        myChar,
+        oppChar,
+        result,
+        score,
+        winReasons,
+        loseReasons,
+        memo
+      };
+
+      records.unshift(record);
+      saveRecords();
+
+      document.getElementById('match-form').reset();
+      document.getElementById('result-win').checked = true;
+      updateScoreOptions();
+
+      showToast('✅ 試合を記録しました！');
+    }
+
+    // ===== History Rendering =====
+    function renderHistory() {
+      const filterMyChar = document.getElementById('filter-my-char').value;
+      const filterOppChar = document.getElementById('filter-opp-char').value;
+      const filterResult = document.getElementById('filter-result').value;
+
+      let filtered = records.filter(r => {
+        if (filterMyChar && r.myChar !== filterMyChar) return false;
+        if (filterOppChar && r.oppChar !== filterOppChar) return false;
+        if (filterResult && r.result !== filterResult) return false;
+        return true;
+      });
+
+      const tbody = document.getElementById('records-body');
+      const emptyState = document.getElementById('empty-history');
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '';
+        emptyState.style.display = 'block';
+        return;
+      }
+
+      emptyState.style.display = 'none';
+
+      tbody.innerHTML = filtered.map(r => {
+        const date = new Date(r.timestamp);
+        const dateStr = `${date.getMonth() + 1}/${date.getDate()} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+        const resultBadge = r.result === 'win'
+          ? '<span class="badge badge-win">WIN</span>'
+          : '<span class="badge badge-lose">LOSE</span>';
+
+        const allWin = getEffectiveWinReasons();
+        const allLose = getEffectiveLoseReasons();
+        const winTags = (r.winReasons || []).map(id => {
+          const reason = allWin.find(w => w.id === id);
+          return reason ? `<span class="reason-tag">${reason.label}</span>` : '';
+        }).join('');
+
+        const loseTags = (r.loseReasons || []).map(id => {
+          const reason = allLose.find(l => l.id === id);
+          return reason ? `<span class="reason-tag">${reason.label}</span>` : '';
+        }).join('');
+
+        return `<tr>
+      <td>${dateStr}</td>
+      <td>${r.myChar}</td>
+      <td>${r.oppChar}</td>
+      <td>${resultBadge}</td>
+      <td><strong>${r.score}</strong></td>
+      <td><div class="reason-tags">${winTags || '-'}</div></td>
+      <td><div class="reason-tags">${loseTags || '-'}</div></td>
+      <td style="max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${(r.memo || '').replace(/"/g, '&quot;')}">${r.memo || '-'}</td>
+      <td><button class="btn btn-danger" onclick="deleteRecord('${r.id}')">削除</button></td>
+    </tr>`;
+      }).join('');
+    }
+
+    function deleteRecord(id) {
+      if (!confirm('この記録を削除しますか？')) return;
+      records = records.filter(r => r.id !== id);
+      saveRecords();
+      renderHistory();
+      showToast('🗑️ 記録を削除しました');
+    }
+
+    // ===== Filter Events =====
+    function initFilterEvents() {
+      ['filter-my-char', 'filter-opp-char', 'filter-result'].forEach(id => {
+        document.getElementById(id).addEventListener('change', renderHistory);
+      });
+
+      document.getElementById('stats-char-filter').addEventListener('change', renderStats);
+      document.getElementById('stats-opp-filter').addEventListener('change', renderStats);
+      document.getElementById('stats-count-filter').addEventListener('change', renderStats);
+    }
+
+    // ===== Stats / Charts =====
+    function renderStats() {
+      const charFilter = document.getElementById('stats-char-filter').value;
+      const oppFilter = document.getElementById('stats-opp-filter').value;
+      const countFilter = document.getElementById('stats-count-filter').value;
+      let data = records;
+      if (charFilter) {
+        data = data.filter(r => r.myChar === charFilter);
+      }
+      if (oppFilter) {
+        data = data.filter(r => r.oppChar === oppFilter);
+      }
+      if (countFilter) {
+        data = data.slice(0, parseInt(countFilter));
+      }
+
+      const total = data.length;
+      const wins = data.filter(r => r.result === 'win').length;
+      const losses = total - wins;
+      const rate = total > 0 ? Math.round((wins / total) * 100) : 0;
+
+      document.getElementById('stats-summary').innerHTML = `
+    <div class="stat-box">
+      <div class="stat-value total-color">${total}</div>
+      <div class="stat-label">総試合数</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value win-color">${wins}</div>
+      <div class="stat-label">勝利</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value lose-color">${losses}</div>
+      <div class="stat-label">敗北</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value rate-color">${rate}%</div>
+      <div class="stat-label">勝率</div>
+    </div>
+  `;
+
+      renderCharts(data);
+    }
+
+    function renderCharts(data) {
+      // Destroy existing charts
+      Object.values(chartInstances).forEach(c => c.destroy());
+      chartInstances = {};
+
+      if (data.length === 0) return;
+
+      // Aggregate reasons by category
+      const effectiveCategories = getEffectiveCategories();
+      const winCategoryCounts = {};
+      const loseCategoryCounts = {};
+      effectiveCategories.forEach(cat => {
+        winCategoryCounts[cat] = 0;
+        loseCategoryCounts[cat] = 0;
+      });
+
+      const allWinReasons = getEffectiveWinReasons();
+      const allLoseReasons = getEffectiveLoseReasons();
+
+      data.forEach(record => {
+        (record.winReasons || []).forEach(id => {
+          const reason = allWinReasons.find(r => r.id === id);
+          if (reason) {
+            if (!(reason.category in winCategoryCounts)) winCategoryCounts[reason.category] = 0;
+            winCategoryCounts[reason.category]++;
+          }
+        });
+        (record.loseReasons || []).forEach(id => {
+          const reason = allLoseReasons.find(r => r.id === id);
+          if (reason) {
+            if (!(reason.category in loseCategoryCounts)) loseCategoryCounts[reason.category] = 0;
+            loseCategoryCounts[reason.category]++;
+          }
+        });
+      });
+
+      const winCategoryValues = effectiveCategories.map(c => winCategoryCounts[c]);
+      const loseCategoryValues = effectiveCategories.map(c => loseCategoryCounts[c]);
+
+      // Chart.js defaults for dark mode
+      Chart.defaults.color = '#8a8a9a';
+      Chart.defaults.borderColor = 'rgba(42, 42, 62, 0.6)';
+
+      // Win Radar
+      chartInstances.winRadar = new Chart(document.getElementById('chart-win-radar'), {
+        type: 'radar',
+        data: {
+          labels: effectiveCategories,
+          datasets: [{
+            label: '勝因',
+            data: winCategoryValues,
+            backgroundColor: CHART_COLORS.fire[0],
+            borderColor: CHART_COLORS.fire[1],
+            borderWidth: 2,
+            pointBackgroundColor: CHART_COLORS.fire[1],
+            pointRadius: 4,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            r: {
+              beginAtZero: true,
+              ticks: { stepSize: 1, color: '#555566', backdropColor: 'transparent' },
+              grid: { color: 'rgba(42, 42, 62, 0.8)' },
+              angleLines: { color: 'rgba(42, 42, 62, 0.8)' },
+              pointLabels: { color: '#eaeaea', font: { size: 12, family: "'Noto Sans JP', sans-serif" } }
+            }
+          }
+        }
+      });
+
+      // Lose Radar
+      chartInstances.loseRadar = new Chart(document.getElementById('chart-lose-radar'), {
+        type: 'radar',
+        data: {
+          labels: effectiveCategories,
+          datasets: [{
+            label: '敗因',
+            data: loseCategoryValues,
+            backgroundColor: CHART_COLORS.ice[0],
+            borderColor: CHART_COLORS.ice[1],
+            borderWidth: 2,
+            pointBackgroundColor: CHART_COLORS.ice[1],
+            pointRadius: 4,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            r: {
+              beginAtZero: true,
+              ticks: { stepSize: 1, color: '#555566', backdropColor: 'transparent' },
+              grid: { color: 'rgba(42, 42, 62, 0.8)' },
+              angleLines: { color: 'rgba(42, 42, 62, 0.8)' },
+              pointLabels: { color: '#eaeaea', font: { size: 12, family: "'Noto Sans JP', sans-serif" } }
+            }
+          }
+        }
+      });
+
+      // Win Pie
+      const winPieLabels = effectiveCategories.filter((_, i) => winCategoryValues[i] > 0);
+      const winPieData = winCategoryValues.filter(v => v > 0);
+      const winPieColors = CHART_COLORS.pieWin.slice(0, winPieLabels.length);
+
+      if (winPieData.length > 0) {
+        chartInstances.winPie = new Chart(document.getElementById('chart-win-pie'), {
+          type: 'doughnut',
+          data: {
+            labels: winPieLabels,
+            datasets: [{
+              data: winPieData,
+              backgroundColor: winPieColors,
+              borderColor: 'rgba(26, 26, 46, 0.8)',
+              borderWidth: 2,
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: { color: '#eaeaea', font: { size: 11, family: "'Noto Sans JP', sans-serif" }, padding: 12 }
+              }
+            }
+          }
+        });
+      }
+
+      // Lose Pie
+      const losePieLabels = effectiveCategories.filter((_, i) => loseCategoryValues[i] > 0);
+      const losePieData = loseCategoryValues.filter(v => v > 0);
+      const losePieColors = CHART_COLORS.pieLose.slice(0, losePieLabels.length);
+
+      if (losePieData.length > 0) {
+        chartInstances.losePie = new Chart(document.getElementById('chart-lose-pie'), {
+          type: 'doughnut',
+          data: {
+            labels: losePieLabels,
+            datasets: [{
+              data: losePieData,
+              backgroundColor: losePieColors,
+              borderColor: 'rgba(26, 26, 46, 0.8)',
+              borderWidth: 2,
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: { color: '#eaeaea', font: { size: 11, family: "'Noto Sans JP', sans-serif" }, padding: 12 }
+              }
+            }
+          }
+        });
+      }
+    }
+
+    // ===== IO Events =====
+    function initIOEvents() {
+      document.getElementById('btn-export').addEventListener('click', exportJSON);
+      document.getElementById('btn-import-trigger').addEventListener('click', () => {
+        document.getElementById('btn-import').click();
+      });
+      document.getElementById('btn-import').addEventListener('change', importJSON);
+      document.getElementById('btn-clear-all').addEventListener('click', clearAll);
+    }
+
+    function exportJSON() {
+      if (records.length === 0) {
+        showToast('⚠️ エクスポートするデータがありません', true);
+        return;
+      }
+      const data = JSON.stringify(records, null, 2);
+      const blob = new Blob([data], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `tekken8_records_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('📤 JSONファイルをエクスポートしました');
+    }
+
+    function importJSON(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function (ev) {
+        try {
+          const imported = JSON.parse(ev.target.result);
+          if (!Array.isArray(imported)) throw new Error('Invalid format');
+
+          const mode = confirm('既存データにマージしますか？\n\nOK: マージ（追加）\nキャンセル: 上書き');
+          if (mode) {
+            const existingIds = new Set(records.map(r => r.id));
+            const newRecords = imported.filter(r => !existingIds.has(r.id));
+            records = [...newRecords, ...records];
+          } else {
+            records = imported;
+          }
+
+          records.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+          saveRecords();
+          renderHistory();
+          updateDataPreview();
+          showToast(`📥 ${imported.length}件のデータをインポートしました`);
+        } catch (err) {
+          showToast('⚠️ JSONファイルの読み込みに失敗しました: ' + err.message, true);
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    }
+
+    function clearAll() {
+      if (!confirm('本当にすべての戦績データを削除しますか？\nこの操作は元に戻せません。')) return;
+      records = [];
+      saveRecords();
+      renderHistory();
+      updateDataPreview();
+      showToast('🗑️ 全データを削除しました');
+    }
+
+    function updateDataPreview() {
+      document.getElementById('data-preview').value =
+        records.length > 0
+          ? JSON.stringify(records, null, 2)
+          : '// データがありません';
+    }
+
+    // ===== Storage =====
+    function loadRecords() {
+      try {
+        const data = localStorage.getItem(STORAGE_KEY);
+        return data ? JSON.parse(data) : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveRecords() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+    }
+
+    // ===== Toast =====
+    function showToast(message, isWarning = false) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.style.borderColor = isWarning ? 'var(--accent-gold)' : 'var(--accent-green)';
+      toast.style.color = isWarning ? 'var(--accent-gold)' : 'var(--accent-green)';
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+  </script>
+
+</body>
+
+</html>
